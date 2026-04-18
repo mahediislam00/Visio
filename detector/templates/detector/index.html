@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VISIO — AI Image Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#00e5ff;--accent2:#a78bfa;--accent3:#ff6b6b;
+  --green:#34d399;--yellow:#fbbf24;
+  --text:#e8eaf0;--muted:rgba(232,234,240,0.45);
+  --glass:rgba(255,255,255,0.038);--glass-border:rgba(255,255,255,0.08);
+}
+html{scroll-behavior:smooth}
+body{background:#050508;color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.orb-1{width:600px;height:600px;top:-200px;left:-100px;background:radial-gradient(circle,rgba(0,229,255,0.1) 0%,transparent 70%);animation:driftOrb 22s ease-in-out infinite}
+.orb-2{width:500px;height:500px;bottom:-100px;right:-150px;background:radial-gradient(circle,rgba(123,94,167,0.14) 0%,transparent 70%);animation:driftOrb 18s ease-in-out -8s infinite}
+.orb-3{width:350px;height:350px;top:45%;left:45%;background:radial-gradient(circle,rgba(0,229,255,0.06) 0%,transparent 70%);animation:driftOrb 25s ease-in-out -4s infinite}
+
+.app{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:0 20px 80px}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0 18px}
+.logo{font-size:22px;font-weight:800;letter-spacing:0.12em;background:linear-gradient(135deg,#00e5ff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo span{font-weight:400;opacity:0.4}
+.nav-badge{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);border:1px solid rgba(0,229,255,0.22);padding:5px 13px;border-radius:20px;background:rgba(0,229,255,0.05);letter-spacing:0.07em}
+
+.hero{text-align:center;padding:48px 0 42px}
+.eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;color:var(--accent);text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:10px}
+.eyebrow-line{width:40px;height:1px;display:block}
+.eyebrow-line.l{background:linear-gradient(90deg,transparent,var(--accent))}
+.eyebrow-line.r{background:linear-gradient(90deg,var(--accent),transparent)}
+.hero h1{font-size:clamp(36px,5.5vw,68px);font-weight:800;line-height:1.05;letter-spacing:-0.02em;margin-bottom:16px}
+.hero h1 em{font-style:normal;background:linear-gradient(135deg,#00e5ff 0%,#a78bfa 50%,#ff6b6b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:15px;color:rgba(232,234,240,0.48);max-width:460px;margin:0 auto;line-height:1.75;font-weight:400}
+
+.glass{background:var(--glass);border:1px solid var(--glass-border);border-radius:22px;backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);position:relative;overflow:hidden}
+.glass::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,transparent 50%);pointer-events:none;border-radius:inherit}
+
+.card-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(232,234,240,0.38);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.07);display:block}
+
+#upload-section{margin-bottom:24px}
+#upload-zone{padding:56px 40px;text-align:center;cursor:pointer;border:2px dashed rgba(255,255,255,0.08);border-radius:20px;transition:all 0.3s;position:relative;overflow:hidden}
+#upload-zone:hover,#upload-zone.drag-over{border-color:var(--accent);background:rgba(0,229,255,0.04)}
+.upload-icon{width:72px;height:72px;margin:0 auto 20px;animation:floatIcon 3s ease-in-out infinite}
+.upload-icon svg{width:100%;height:100%;filter:drop-shadow(0 0 14px rgba(0,229,255,0.45))}
+#upload-zone h3{font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-0.01em}
+#upload-zone p{font-size:13px;color:var(--muted);font-family:'DM Mono',monospace}
+.upload-hint{margin-top:20px;display:inline-flex;align-items:center;gap:8px;font-size:11px;font-family:'DM Mono',monospace;color:rgba(0,229,255,0.6);border:1px solid rgba(0,229,255,0.15);padding:6px 14px;border-radius:20px;background:rgba(0,229,255,0.04)}
+
+#preview-section{display:none;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+#preview-section.visible{display:grid}
+.preview-card{padding:18px}
+.img-wrap{border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.3);min-height:260px;display:flex;align-items:center;justify-content:center;position:relative}
+.img-wrap img{max-width:100%;max-height:360px;object-fit:contain;display:block}
+#annot-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.img-meta{margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(232,234,240,0.3);letter-spacing:0.06em}
+
+#scan-overlay{position:absolute;inset:0;background:rgba(5,5,8,0.55);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#scan-overlay.active{display:flex}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#00e5ff,transparent);animation:scanLine 1.4s linear infinite}
+.scan-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:0.1em}
+
+#analyze-section{display:none;margin-bottom:20px}
+#analyze-section.visible{display:block}
+.analyze-card{padding:20px}
+#analyze-btn{width:100%;padding:17px;border:1px solid rgba(0,229,255,0.3);border-radius:14px;cursor:pointer;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text);background:linear-gradient(135deg,rgba(0,229,255,0.13),rgba(123,94,167,0.18));transition:all 0.3s;display:flex;align-items:center;justify-content:center;gap:10px}
+#analyze-btn:hover{background:linear-gradient(135deg,rgba(0,229,255,0.22),rgba(123,94,167,0.26))}
+#analyze-btn:disabled{opacity:0.6;cursor:not-allowed}
+
+#progress-wrap{margin-top:14px;height:2px;border-radius:2px;background:rgba(255,255,255,0.07);overflow:hidden;display:none}
+#progress-wrap.active{display:block}
+#progress-fill{height:100%;border-radius:2px;width:0%;transition:width 0.4s;background:linear-gradient(90deg,#00e5ff,#a78bfa,#00e5ff);background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+
+#stages{margin-top:14px;display:none}
+#stages.active{display:block}
+.stage{display:flex;align-items:center;gap:12px;padding:9px 0;font-family:'DM Mono',monospace;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.04);color:rgba(232,234,240,0.35);transition:color 0.3s}
+.stage:last-child{border-bottom:none}
+.stage.done{color:var(--text)}.stage.running{color:rgba(167,139,250,0.9)}
+.stage-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);flex-shrink:0;transition:background 0.3s,box-shadow 0.3s}
+.stage.done .stage-dot{background:var(--accent);box-shadow:0 0 8px rgba(0,229,255,0.7)}
+.stage.running .stage-dot{background:#a78bfa;animation:pulse 0.8s ease-in-out infinite}
+.stage-check{margin-left:auto;color:var(--accent);font-size:10px;display:none}
+.stage.done .stage-check{display:block}
+
+#error-box{display:none;margin-top:14px;padding:12px 16px;border-radius:10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);color:#ff6b6b;font-family:'DM Mono',monospace;font-size:12px}
+
+#results-section{display:none;flex-direction:column;gap:18px}
+#results-section.visible{display:flex}
+
+.score-inner{display:flex;gap:24px;align-items:flex-start}
+.gauge-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center}
+.verdict-badge{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:5px 14px;border-radius:20px;letter-spacing:0.08em;margin-top:-4px;white-space:nowrap;text-align:center}
+.score-right{flex:1;min-width:0}
+.score-reasoning{font-size:13px;color:rgba(232,234,240,0.6);line-height:1.7;font-family:'DM Mono',monospace;margin-bottom:16px}
+.signals{display:flex;flex-direction:column;gap:7px}
+.signal{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:9px;animation:slideIn 0.35s ease forwards;opacity:0}
+.signal-icon{font-size:10px;flex-shrink:0;width:12px;text-align:center}
+.signal-info{flex:1;min-width:0}
+.signal-label{font-size:12px;font-weight:600;margin-right:8px}
+.signal-detail{font-size:11px;color:rgba(232,234,240,0.42);font-family:'DM Mono',monospace}
+.signal-badge{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.07em;padding:2px 8px;border-radius:10px;flex-shrink:0}
+.scale-bar{display:flex;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.05)}
+.scale-seg{flex:1;height:3px;opacity:0.6}
+.scale-labels{display:flex;justify-content:space-between;margin-top:6px}
+.scale-labels span{font-family:'DM Mono',monospace;font-size:9px;color:rgba(232,234,240,0.3);letter-spacing:0.06em}
+
+.scene-card{padding:20px 24px}
+.scene-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.scene-title{font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-0.01em}
+.scene-summary{font-size:13px;color:rgba(232,234,240,0.55);line-height:1.7;font-family:'DM Mono',monospace}
+.scene-badges{display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex-shrink:0}
+.scene-badge{font-family:'DM Mono',monospace;font-size:10px;padding:4px 11px;border-radius:20px;letter-spacing:0.07em}
+.anomaly-box{margin-top:14px;padding:10px 14px;border-radius:10px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);font-family:'DM Mono',monospace;font-size:11px;color:#fbbf24}
+
+.detections-header{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between}
+.detections-header h2{font-size:15px;font-weight:700;letter-spacing:-0.01em}
+.detections-meta{font-family:'DM Mono',monospace;font-size:11px;color:rgba(232,234,240,0.4)}
+.detections-list{padding:14px 24px 24px;display:flex;flex-direction:column;gap:9px}
+.detection-item{display:flex;align-items:center;gap:14px;padding:13px 15px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;animation:slideIn 0.4s ease forwards;opacity:0;transition:all 0.2s}
+.detection-item:hover{background:rgba(0,229,255,0.04);border-color:rgba(0,229,255,0.15)}
+.det-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.det-info{flex:1;min-width:0}
+.det-label{font-size:14px;font-weight:600;margin-bottom:3px}
+.det-sub{font-family:'DM Mono',monospace;font-size:10px;color:rgba(232,234,240,0.42)}
+.det-conf{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.det-pct{font-family:'DM Mono',monospace;font-size:13px;font-weight:500}
+.conf-bar{width:80px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.conf-fill{height:100%;border-radius:2px;transition:width 0.8s cubic-bezier(0.16,1,0.3,1)}
+
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.stats-card{padding:20px}.tags-card{padding:20px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-item{padding:14px 12px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;animation:countUp 0.4s ease forwards;opacity:0}
+.stat-val{font-size:24px;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#00e5ff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;margin-bottom:4px}
+.stat-lbl{font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(232,234,240,0.4)}
+.tags-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.tag{font-family:'DM Mono',monospace;font-size:10px;padding:5px 11px;border-radius:20px;letter-spacing:0.06em;animation:tagPop 0.3s ease forwards;opacity:0}
+.colors-wrap{display:flex;gap:8px;flex-wrap:wrap}
+.color-chip{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(232,234,240,0.7)}
+
+.footer-strip{padding:14px 20px}
+.footer-inner{display:flex;align-items:center;justify-content:space-between}
+.model-badges{display:flex;gap:8px}
+.model-badge{font-family:'DM Mono',monospace;font-size:10px;padding:3px 9px;border-radius:6px}
+#reset-btn{font-family:'DM Mono',monospace;font-size:11px;color:rgba(232,234,240,0.4);background:none;border:none;cursor:pointer;letter-spacing:0.06em;transition:color 0.2s}
+#reset-btn:hover{color:var(--text)}
+.page-footer{text-align:center;padding:28px 0 0;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.15);letter-spacing:0.1em}
+.page-footer span{color:rgba(0,229,255,0.4)}
+
+/* mode indicator */
+#mode-indicator{font-family:'DM Mono',monospace;font-size:10px;padding:3px 10px;border-radius:6px;background:rgba(52,211,153,0.08);color:#34d399;border:1px solid rgba(52,211,153,0.2)}
+
+@keyframes driftOrb{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.05)}66%{transform:translate(-20px,50px) scale(0.95)}}
+@keyframes floatIcon{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tagPop{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+@keyframes scanLine{0%{top:0%;opacity:0.7}100%{top:100%;opacity:0}}
+@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:640px){
+  #preview-section.visible{grid-template-columns:1fr}
+  .bottom-grid{grid-template-columns:1fr}
+  .score-inner{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="app">
+  <nav>
+    <div class="logo">VISIO<span>.AI</span></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div id="mode-indicator">{{ mode|default:"claude" }} backend</div>
+      <div class="nav-badge">LOCAL SERVER · LIVE</div>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="eyebrow">
+      <span class="eyebrow-line l"></span>
+      Deep Learning Vision System
+      <span class="eyebrow-line r"></span>
+    </div>
+    <h1>Detect. <em>Classify.</em><br>Understand.</h1>
+    <p>Upload any image — the backend runs your ML model for object detection, scene analysis, semantic tagging, and AI image forensics.</p>
+  </div>
+
+  <div id="upload-section">
+    <div class="glass">
+      <div id="upload-zone">
+        <div class="upload-icon">
+          <svg viewBox="0 0 64 64" fill="none" stroke="#00e5ff" stroke-width="1.5">
+            <rect x="4" y="12" width="56" height="40" rx="6"/>
+            <circle cx="22" cy="28" r="5"/>
+            <polyline points="4,40 18,28 28,36 40,22 60,38"/>
+            <line x1="32" y1="2" x2="32" y2="16"/>
+            <polyline points="26,8 32,2 38,8"/>
+          </svg>
+        </div>
+        <h3>Drop your image here</h3>
+        <p>or click to browse</p>
+        <div class="upload-hint">PNG · JPG · WEBP · BMP · up to 20MB</div>
+      </div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none"/>
+  </div>
+
+  <div id="preview-section">
+    <div class="glass preview-card">
+      <div class="card-label">Original Input</div>
+      <div class="img-wrap">
+        <img id="original-img" src="" alt="original"/>
+      </div>
+      <div class="img-meta" id="img-meta"></div>
+    </div>
+    <div class="glass preview-card">
+      <div class="card-label">Annotated Output</div>
+      <div class="img-wrap" id="annot-wrap">
+        <img id="annot-img" src="" alt="annotated"/>
+        <canvas id="annot-canvas"></canvas>
+        <div id="scan-overlay">
+          <div class="scan-line"></div>
+          <div class="scan-text">SCANNING...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="analyze-section">
+    <div class="glass analyze-card">
+      <button id="analyze-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/>
+        </svg>
+        <span id="btn-text">Run Detection Analysis</span>
+      </button>
+      <div id="progress-wrap"><div id="progress-fill"></div></div>
+      <div id="stages"></div>
+      <div id="error-box"></div>
+    </div>
+  </div>
+
+  <div id="results-section">
+    <div class="glass" id="ai-score-card" style="padding:22px 24px"></div>
+    <div class="glass scene-card" id="scene-card"></div>
+    <div class="glass" id="detections-card"></div>
+    <div class="bottom-grid">
+      <div class="glass stats-card" id="stats-card"></div>
+      <div class="glass tags-card" id="tags-card"></div>
+    </div>
+    <div class="glass footer-strip">
+      <div class="footer-inner">
+        <div class="model-badges">
+          <span class="model-badge" style="background:rgba(0,229,255,0.07);color:#00e5ff;border:1px solid rgba(0,229,255,0.18)" id="badge-backend">loading...</span>
+          <span class="model-badge" style="background:rgba(167,139,250,0.07);color:#a78bfa;border:1px solid rgba(167,139,250,0.2)">Django Backend</span>
+          <span class="model-badge" style="background:rgba(255,107,107,0.07);color:#ff6b6b;border:1px solid rgba(255,107,107,0.18)">Forensics Engine</span>
+        </div>
+        <button id="reset-btn">← New Analysis</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">VISIO AI · <span>Django + ML Backend</span></div>
+</div>
+
+<script>
+const COLORS = ["#00e5ff","#a78bfa","#ff6b6b","#34d399","#fbbf24","#f472b6","#60a5fa","#fb923c","#e879f9","#4ade80"];
+const STAGES_TEXT = [
+  "Preprocessing image...",
+  "Running detection model...",
+  "Classifying scene...",
+  "Extracting attributes...",
+  "Computing confidence vectors...",
+  "Compiling analysis report...",
+];
+
+let currentFile = null, currentResults = null;
+
+const $  = id => document.getElementById(id);
+const uploadZone   = $('upload-zone');
+const fileInput    = $('file-input');
+const previewSec   = $('preview-section');
+const analyzeSec   = $('analyze-section');
+const resultsSec   = $('results-section');
+const originalImg  = $('original-img');
+const annotImg     = $('annot-img');
+const canvas       = $('annot-canvas');
+const annotWrap    = $('annot-wrap');
+const scanOverlay  = $('scan-overlay');
+const imgMeta      = $('img-meta');
+const analyzeBtn   = $('analyze-btn');
+const btnText      = $('btn-text');
+const progressWrap = $('progress-wrap');
+const progressFill = $('progress-fill');
+const stagesEl     = $('stages');
+const errorBox     = $('error-box');
+
+// Detect backend mode from page
+const modeEl = $('mode-indicator');
+const mode = modeEl ? modeEl.textContent.replace(' backend','').trim() : 'claude';
+$('badge-backend').textContent = mode === 'pkl' ? 'Custom PKL Model' : 'Claude Vision API';
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+$('reset-btn').addEventListener('click', reset);
+analyzeBtn.addEventListener('click', runAnalysis);
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  currentFile = file;
+  currentResults = null;
+  const url = URL.createObjectURL(file);
+  originalImg.src = url;
+  annotImg.src = url;
+  imgMeta.textContent = `${file.name} · ${(file.size/1024).toFixed(0)}KB`;
+  previewSec.classList.add('visible');
+  analyzeSec.classList.add('visible');
+  resultsSec.classList.remove('visible');
+  progressWrap.classList.remove('active');
+  stagesEl.classList.remove('active');
+  stagesEl.innerHTML = '';
+  errorBox.style.display = 'none';
+  progressFill.style.width = '0%';
+  clearCanvas();
+}
+
+function clearCanvas() {
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+
+function buildStages() {
+  stagesEl.innerHTML = '';
+  STAGES_TEXT.forEach((t,i) => {
+    const d = document.createElement('div');
+    d.className = 'stage'; d.id = `stage-${i}`;
+    d.innerHTML = `<div class="stage-dot"></div><span>${t}</span><span class="stage-check">✓</span>`;
+    stagesEl.appendChild(d);
+  });
+}
+
+function setStage(idx) {
+  STAGES_TEXT.forEach((_,i) => {
+    const el = $(`stage-${i}`);
+    if (!el) return;
+    el.classList.remove('done','running');
+    if (i < idx) el.classList.add('done');
+    else if (i === idx) el.classList.add('running');
+  });
+}
+
+async function runAnalysis() {
+  if (!currentFile) return;
+  analyzeBtn.disabled = true;
+  btnText.textContent = 'Analyzing...';
+  errorBox.style.display = 'none';
+  progressWrap.classList.add('active');
+  stagesEl.classList.add('active');
+  scanOverlay.classList.add('active');
+  buildStages();
+  progressFill.style.width = '5%';
+  setStage(0);
+
+  // Stage ticker
+  let si = 0;
+  const ticker = setInterval(() => {
+    si++;
+    if (si < STAGES_TEXT.length) {
+      setStage(si);
+      progressFill.style.width = `${Math.round(si/STAGES_TEXT.length*85)}%`;
+    }
+  }, 500);
+
+  try {
+    // POST multipart form to Django /analyze/
+    const form = new FormData();
+    form.append('image', currentFile);
+
+    const resp = await fetch('/analyze/', { method: 'POST', body: form });
+    clearInterval(ticker);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({error:'Server error'}));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+
+    const parsed = await resp.json();
+    if (parsed.error) throw new Error(parsed.error);
+
+    // Assign colors to detections
+    parsed.detections = (parsed.detections||[]).map((d,i)=>({...d,color:COLORS[i%COLORS.length]}));
+
+    STAGES_TEXT.forEach((_,i)=>{ const el=$(`stage-${i}`); if(el){el.classList.remove('running');el.classList.add('done');} });
+    progressFill.style.width = '100%';
+
+    await sleep(300);
+    scanOverlay.classList.remove('active');
+    currentResults = parsed;
+    renderResults(parsed);
+
+  } catch(e) {
+    clearInterval(ticker);
+    scanOverlay.classList.remove('active');
+    errorBox.textContent = '⚠ ' + (e.message||'Analysis failed.');
+    errorBox.style.display = 'block';
+  } finally {
+    analyzeBtn.disabled = false;
+    btnText.textContent = 'Run Detection Analysis';
+  }
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function drawBoxes(detections) {
+  const wRect = annotWrap.getBoundingClientRect();
+  const iRect = annotImg.getBoundingClientRect();
+  const W=iRect.width, H=iRect.height;
+  if(W===0||H===0) return;
+  const offX=iRect.left-wRect.left, offY=iRect.top-wRect.top;
+  canvas.width=wRect.width; canvas.height=wRect.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  detections.forEach(d=>{
+    if(!d.box||d.box.length<4) return;
+    const [rx,ry,rw,rh]=d.box;
+    const x=offX+rx*W,y=offY+ry*H,bw=rw*W,bh=rh*H;
+    if(bw<4||bh<4) return;
+    ctx.shadowColor=d.color;ctx.shadowBlur=18;ctx.strokeStyle=d.color;ctx.lineWidth=1.8;
+    ctx.strokeRect(x,y,bw,bh);ctx.shadowBlur=0;
+    const cs=12;ctx.lineWidth=2.5;
+    [[x,y,1,1],[x+bw,y,-1,1],[x,y+bh,1,-1],[x+bw,y+bh,-1,-1]].forEach(([cx,cy,sx,sy])=>{
+      ctx.beginPath();ctx.moveTo(cx+sx*cs,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+sy*cs);ctx.stroke();
+    });
+    const txt=`${d.label}  ${Math.round((d.confidence||0.9)*100)}%`;
+    ctx.font='500 10px "DM Mono",monospace';
+    const tw=ctx.measureText(txt).width;
+    const lx=Math.min(x,canvas.width-tw-18);
+    const ly=y<22?y+bh+2:y-6;
+    ctx.fillStyle=d.color+'cc';ctx.beginPath();ctx.roundRect(lx,ly-14,tw+14,19,4);ctx.fill();
+    ctx.fillStyle='#000';ctx.fillText(txt,lx+7,ly);
+  });
+}
+
+function renderResults(r) {
+  renderAIScore(r.ai_score);
+
+  const sbadges=[
+    {val:r.scene_type,bg:'rgba(0,229,255,0.08)',color:'#00e5ff',border:'rgba(0,229,255,0.2)'},
+    {val:r.lighting,bg:'rgba(167,139,250,0.08)',color:'#a78bfa',border:'rgba(167,139,250,0.22)'},
+    {val:r.mood,bg:'rgba(255,107,107,0.08)',color:'#ff6b6b',border:'rgba(255,107,107,0.2)'},
+  ].filter(b=>b.val);
+  $('scene-card').innerHTML=`
+    <div class="card-label">Scene Analysis</div>
+    <div class="scene-top">
+      <div><div class="scene-title">${esc(r.scene||'')}</div><div class="scene-summary">${esc(r.summary||'')}</div></div>
+      <div class="scene-badges">${sbadges.map(b=>`<span class="scene-badge" style="background:${b.bg};color:${b.color};border:1px solid ${b.border}">${esc(b.val)}</span>`).join('')}</div>
+    </div>
+    ${r.anomalies&&r.anomalies.toLowerCase()!=='none'?`<div class="anomaly-box">⚡ ${esc(r.anomalies)}</div>`:''}`;
+
+  const classes=new Set((r.detections||[]).map(d=>d.category)).size;
+  $('detections-card').innerHTML=`
+    <div class="detections-header"><h2>Detected Objects</h2><div class="detections-meta">${(r.detections||[]).length} objects · ${classes} categories</div></div>
+    <div class="detections-list">
+      ${(r.detections||[]).map((d,i)=>`
+        <div class="detection-item" style="animation-delay:${i*70}ms">
+          <div class="det-dot" style="background:${d.color};box-shadow:0 0 8px ${d.color}66"></div>
+          <div class="det-info"><div class="det-label">${esc(d.label)}</div><div class="det-sub">${esc(d.category)} · ${esc(d.description||'')}</div></div>
+          <div class="det-conf">
+            <div class="det-pct" style="color:${d.color}">${Math.round((d.confidence||0.9)*100)}%</div>
+            <div class="conf-bar"><div class="conf-fill" style="background:${d.color};width:${(d.confidence||0.9)*100}%"></div></div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+
+  const avgConf=r.detections?.length?Math.round(r.detections.reduce((s,d)=>s+(d.confidence||0),0)/r.detections.length*100):0;
+  $('stats-card').innerHTML=`
+    <div class="card-label">Statistics</div>
+    <div class="stats-grid">
+      ${[{v:r.detections?.length||0,l:'Objects Found'},{v:avgConf+'%',l:'Avg Confidence'},{v:classes,l:'Categories'},{v:1,l:'Models Used'}]
+        .map((s,i)=>`<div class="stat-item" style="animation-delay:${i*80}ms"><span class="stat-val">${s.v}</span><span class="stat-lbl">${s.l}</span></div>`).join('')}
+    </div>`;
+
+  const tc=[{bg:'rgba(0,229,255,0.07)',c:'#00e5ff',b:'rgba(0,229,255,0.18)'},{bg:'rgba(167,139,250,0.08)',c:'#a78bfa',b:'rgba(167,139,250,0.2)'},{bg:'rgba(255,107,107,0.07)',c:'#ff6b6b',b:'rgba(255,107,107,0.18)'}];
+  $('tags-card').innerHTML=`
+    <div class="card-label">Scene Tags</div>
+    <div class="tags-wrap">${(r.tags||[]).map((t,i)=>{const c=tc[i%3];return`<span class="tag" style="background:${c.bg};color:${c.c};border:1px solid ${c.b};animation-delay:${i*50}ms">${esc(t)}</span>`;}).join('')}</div>
+    <div class="card-label">Dominant Colors</div>
+    <div class="colors-wrap">${(r.colors||[]).map(c=>`<span class="color-chip">${esc(c)}</span>`).join('')}</div>`;
+
+  resultsSec.classList.add('visible');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(annotImg.complete&&annotImg.naturalWidth>0) drawBoxes(r.detections||[]);
+    else annotImg.onload=()=>requestAnimationFrame(()=>drawBoxes(r.detections||[]));
+  }));
+  const ro=new ResizeObserver(()=>{ if(currentResults) drawBoxes(currentResults.detections||[]); });
+  ro.observe(annotWrap);
+}
+
+function renderAIScore(ai) {
+  if(!ai) return;
+  const pct=Math.round((ai.score||0)*100);
+  const color=pct>=75?'#ff6b6b':pct>=50?'#fbbf24':pct>=30?'#a78bfa':'#34d399';
+  const bg=pct>=75?'rgba(255,107,107,0.07)':pct>=50?'rgba(251,191,36,0.07)':pct>=30?'rgba(167,139,250,0.07)':'rgba(52,211,153,0.07)';
+  const bd=pct>=75?'rgba(255,107,107,0.22)':pct>=50?'rgba(251,191,36,0.2)':pct>=30?'rgba(167,139,250,0.2)':'rgba(52,211,153,0.2)';
+  const R=54,cx=70,cy=70,startA=Math.PI*0.75,sweep=Math.PI*1.5,endA=startA+sweep*(pct/100);
+  const ax1=cx+R*Math.cos(startA),ay1=cy+R*Math.sin(startA);
+  const ax2=cx+R*Math.cos(endA),ay2=cy+R*Math.sin(endA);
+  const lg=sweep*(pct/100)>Math.PI?1:0;
+  const tx2=cx+R*Math.cos(startA+sweep),ty2=cy+R*Math.sin(startA+sweep);
+  const si=v=>v==='positive'?'▲':v==='negative'?'▼':'●';
+  const sc=v=>v==='positive'?'#ff6b6b':v==='negative'?'#34d399':'rgba(232,234,240,0.4)';
+  const sb=v=>v==='positive'?'rgba(255,107,107,0.08)':v==='negative'?'rgba(52,211,153,0.08)':'rgba(255,255,255,0.05)';
+  const sbd=v=>v==='positive'?'rgba(255,107,107,0.2)':v==='negative'?'rgba(52,211,153,0.18)':'rgba(255,255,255,0.08)';
+  const card=$('ai-score-card');
+  card.style.border=`1px solid ${bd}`;card.style.background=bg;
+  card.innerHTML=`
+    <div class="card-label">AI / Synthetic Detection Score</div>
+    <div class="score-inner">
+      <div class="gauge-wrap">
+        <svg width="140" height="100" viewBox="0 0 140 100">
+          <path d="M ${ax1} ${ay1} A ${R} ${R} 0 1 1 ${tx2} ${ty2}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="8" stroke-linecap="round"/>
+          ${pct>0?`<path d="M ${ax1} ${ay1} A ${R} ${R} 0 ${lg} 1 ${ax2} ${ay2}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" style="filter:drop-shadow(0 0 6px ${color}88)"/>`:''}
+          <text x="${cx}" y="${cy-4}" text-anchor="middle" fill="${color}" style="font-size:26px;font-weight:800;font-family:'Syne',sans-serif">${pct}%</text>
+          <text x="${cx}" y="${cy+13}" text-anchor="middle" fill="rgba(232,234,240,0.4)" style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase">AI Score</text>
+        </svg>
+        <div class="verdict-badge" style="background:${bg};color:${color};border:1px solid ${bd}">${esc(ai.verdict||'Unknown')}</div>
+      </div>
+      <div class="score-right">
+        <div class="score-reasoning">${esc(ai.reasoning||'')}</div>
+        <div class="signals">
+          ${(ai.signals||[]).map((s,i)=>`
+            <div class="signal" style="animation-delay:${i*60}ms">
+              <span class="signal-icon" style="color:${sc(s.value)}">${si(s.value)}</span>
+              <div class="signal-info"><span class="signal-label">${esc(s.label)}</span><span class="signal-detail">${esc(s.detail)}</span></div>
+              <span class="signal-badge" style="color:${sc(s.value)};background:${sb(s.value)};border:1px solid ${sbd(s.value)}">${esc(s.value)}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="scale-bar">
+      <div class="scale-seg" style="background:#34d399;border-radius:3px 0 0 3px"></div>
+      <div class="scale-seg" style="background:#a78bfa"></div>
+      <div class="scale-seg" style="background:#fbbf24"></div>
+      <div class="scale-seg" style="background:#ff6b6b;border-radius:0 3px 3px 0"></div>
+    </div>
+    <div class="scale-labels"><span>Real Photo</span><span>Possibly AI</span><span>Likely AI</span><span>AI Generated</span></div>`;
+}
+
+function reset() {
+  currentFile=null;currentResults=null;
+  previewSec.classList.remove('visible');analyzeSec.classList.remove('visible');resultsSec.classList.remove('visible');
+  progressWrap.classList.remove('active');stagesEl.classList.remove('active');
+  stagesEl.innerHTML='';errorBox.style.display='none';progressFill.style.width='0%';
+  fileInput.value='';clearCanvas();scanOverlay.classList.remove('active');
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
